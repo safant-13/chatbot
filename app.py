@@ -1,7 +1,7 @@
 import streamlit as st
 from groq import Groq
 from pinecone import Pinecone, ServerlessSpec
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings  
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
 import os
