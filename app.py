@@ -1,7 +1,7 @@
 import streamlit as st
 from groq import Groq
 from pinecone import Pinecone, ServerlessSpec
-from langchain_community.embeddings import HuggingFaceEmbeddings  
+from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
 import os
@@ -9,7 +9,6 @@ import PyPDF2
 import pickle
 from datetime import datetime
 import logging
-import speech_recognition as sr
 
 # Set up logging
 logging.basicConfig(
@@ -32,7 +31,6 @@ PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_ENV = os.getenv("PINECONE_ENV")
 
 # Initialize Groq client
-logger.info(f"Initializing Groq client with API key: {GROQ_API_KEY[:5]}... (truncated)")
 groq_client = Groq(api_key=GROQ_API_KEY)
 
 # Initialize Pinecone
@@ -75,7 +73,7 @@ def load_uploaded_files():
     except FileNotFoundError:
         return []
 
-# Process uploaded files (with Document Viewer support)
+# Process uploaded files
 def process_file(file):
     logger.info(f"Processing file: {file.name}")
     if file.name.endswith(".pdf"):
@@ -83,9 +81,6 @@ def process_file(file):
         text = "".join(page.extract_text() for page in pdf_reader.pages)
     else:
         text = file.read().decode("utf-8")
-    
-    # Store full text for Document Viewer
-    st.session_state.uploaded_docs[file.name] = text
     
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = text_splitter.split_text(text)
@@ -118,30 +113,6 @@ def generate_response(query, context, model):
     )
     return response_stream
 
-# Voice input function (simplified)
-def get_voice_input():
-    if st.session_state.get("recording", False):
-        r = sr.Recognizer()
-        with sr.Microphone() as source:
-            st.info("Recording... Speak now!")
-            try:
-                audio = r.listen(source, timeout=5)  # Record for up to 5 seconds
-                text = r.recognize_google(audio)
-                logger.info(f"Voice input transcribed: '{text}'")
-                st.session_state.recording = False
-                return text
-            except sr.WaitTimeoutError:
-                st.error("No audio detected within 5 seconds")
-                logger.error("Voice input timeout")
-            except sr.UnknownValueError:
-                st.error("Couldn’t understand the audio")
-                logger.error("Speech recognition failed: Unknown value")
-            except sr.RequestError as e:
-                st.error(f"Speech recognition error: {e}")
-                logger.error(f"Speech recognition error: {e}")
-        st.session_state.recording = False
-    return None
-
 # Streamlit UI
 st.title("🤖 RAG Chatbot with Groq & Pinecone")
 
@@ -156,10 +127,6 @@ if "selected_model" not in st.session_state:
     st.session_state.selected_model = "mixtral-8x7b-32768"
 if "logs" not in st.session_state:
     st.session_state.logs = []
-if "uploaded_docs" not in st.session_state:
-    st.session_state.uploaded_docs = {}
-if "recording" not in st.session_state:
-    st.session_state.recording = False
 
 # Log handler to capture logs in session state
 class StreamlitLogHandler(logging.Handler):
@@ -198,7 +165,6 @@ with st.sidebar:
     if st.button("🗑️ Clear Documents & Index"):
         index.delete(delete_all=True)
         st.session_state.uploaded_files = []
-        st.session_state.uploaded_docs = {}
         save_uploaded_files([])
         st.success("Documents and index cleared!")
 
@@ -230,17 +196,8 @@ with st.sidebar:
 # Model selection dropdown
 st.session_state.selected_model = st.selectbox("Select Model", groq_models, index=groq_models.index(st.session_state.selected_model))
 
-# Chat Input (Text with Audio Button)
-col1, col2 = st.columns([5, 1])
-with col1:
-    prompt = st.chat_input("Ask me anything!")
-with col2:
-    if st.button("🎙️ Record", key="record_audio"):
-        st.session_state.recording = True
-if st.session_state.recording:
-    voice_prompt = get_voice_input()
-    if voice_prompt:
-        prompt = voice_prompt
+# Chat Input at the top
+prompt = st.chat_input("Ask me anything!")
 
 # Main Chat Area
 if st.session_state.current_chat_id:
@@ -296,14 +253,10 @@ if prompt:
                 response_placeholder.markdown(full_response)
                 logger.info(f"Groq response completed: '{full_response[:50]}...'")
         
-        # Document Viewer with citations
         if chunks_with_metadata:
             with st.expander("📜 Document Preview & Citations"):
                 for chunk, file_name in chunks_with_metadata:
                     st.markdown(f"**From {file_name}:** _{chunk[:200]}..._")
-                    if st.button(f"View Full {file_name}", key=f"view_{file_name}_{id(chunk)}"):
-                        with st.expander(f"Full Document: {file_name}", expanded=True):
-                            st.text(st.session_state.uploaded_docs.get(file_name, "Document not found"))
     
     st.session_state.chat_sessions[st.session_state.current_chat_id].append({"role": "assistant", "content": full_response})
     save_chat_sessions(st.session_state.chat_sessions)
