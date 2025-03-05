@@ -142,7 +142,8 @@ groq_models = [
     "llama2-70b-4096",
     "llama3-8b-8192",
     "llama3-70b-8192",
-    "gemma-7b-it"
+    "gemma-7b-it",
+    "deepseek-r1-distill-llama-70b"
 ]
 
 # Sidebar
