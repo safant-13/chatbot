@@ -17,4 +17,9 @@ Ideally, you want to make a new environment to install all dependencies:
 1. Clone the repo: `git clone https://github.com/yourusername/rag-chatbot.git`
 2. Install dependencies: `pip install -r requirements.txt`
 3. Set up `.env` with your API keys.
-4. Run: `streamlit run app.py`
+     Here is an example of .env file (REPLACE WITH YOUR API KEYS!!!)
+
+    `GROQ_API_KEY=gsk_PKFPUTYOURAPIKEYSHEREMNkM0`
+    `PINECONE_API_KEY=pDONOTCOPYTHSLOLiiKquDUSx`
+    `PINECONE_ENV=us-east-1`
+5. Run: `streamlit run app.py`
