@@ -9,6 +9,9 @@ Preparation Before Workshop:
 3. Prepare a GitHub repository with starter code
 4. Create a small sample document set for RAG testing
 
+Ideally, you want to make a new environment to install all dependencies:
+1. Run `python -m venv venv` to make an env in your project directory
+2. Run `venv\Scripts\activate` to activate environment
 
 ## Steps to setup the chatbot
 1. Clone the repo: `git clone https://github.com/yourusername/rag-chatbot.git`
